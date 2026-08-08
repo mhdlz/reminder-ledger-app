@@ -46,12 +46,21 @@ const Task = mongoose.model('Task', new mongoose.Schema({
 }));
 
 // হোয়াটসঅ্যাপ বট
+// --- পার্মানেন্ট হোয়াটসঅ্যাপ বট সেটআপ (Linux/Render সামঞ্জস্যপূর্ণ) ---
 const whatsapp = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
     puppeteer: {
         headless: true,
-        channel: 'chrome',
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--unhandled-rejections=strict']
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu'
+        ]
     }
 });
 
