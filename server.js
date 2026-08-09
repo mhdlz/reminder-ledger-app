@@ -5,6 +5,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cron = require('node-cron');
+const http = require('http');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
@@ -45,8 +46,7 @@ const Task = mongoose.model('Task', new mongoose.Schema({
     isNotified: { type: Boolean, default: false }
 }));
 
-// হোয়াটসঅ্যাপ বট
-// --- পার্মানেন্ট হোয়াটসঅ্যাপ বট সেটআপ (Linux/Render সামঞ্জস্যপূর্ণ) ---
+// --- পার্মানেন্ট হোয়াটসঅ্যাপ বট সেটআপ (Linux Cloud Compatible) ---
 const whatsapp = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
     puppeteer: {
@@ -65,18 +65,43 @@ const whatsapp = new Client({
 });
 
 let isWhatsAppReady = false;
+let latestQRCode = '';
 
-whatsapp.on('qr', (qr) => qrcode.generate(qr, { small: true }));
+whatsapp.on('qr', (qr) => {
+    console.log('⚡ নতুন QR Code এসেছে:');
+    qrcode.generate(qr, { small: true });
+    latestQRCode = qr;
+});
+
 whatsapp.on('ready', () => {
     console.log('✅ হোয়াটসঅ্যাপ বট পার্মানেন্টলি কানেক্টেড!');
     isWhatsAppReady = true;
+    latestQRCode = '';
 });
+
 whatsapp.on('disconnected', () => {
     isWhatsAppReady = false;
     whatsapp.initialize();
 });
 whatsapp.initialize();
 
+// মোবাইল থেকে QR Code স্ক্যান করার জন্য ওয়েব পেজ
+app.get('/qr', (req, res) => {
+    if (isWhatsAppReady) {
+        return res.send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:green;">✅ হোয়াটসঅ্যাপ ইতোমধ্যে কানেক্টেড আছে!</h2>');
+    }
+    if (!latestQRCode) {
+        return res.send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px;">QR Code তৈরি হচ্ছে... ১০ সেকেন্ড পর পেজ রিফ্রেশ করুন।</h2>');
+    }
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(latestQRCode)}`;
+    res.send(`
+        <div style="font-family:sans-serif; text-align:center; padding:20px;">
+            <h2>মোবাইল দিয়ে হোয়াটসঅ্যাপ QR কোড স্ক্যান করুন</h2>
+            <img src="${qrImageUrl}" style="border:10px solid #eee; rounded:10px;" />
+            <p>আপনার ফোনের WhatsApp > Linked Devices এ গিয়ে স্ক্যান করুন।</p>
+        </div>
+    `);
+});
 
 // --- এপিআই সমুহ ---
 
@@ -140,7 +165,6 @@ app.get('/api/persons/:id/transactions', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// পাবলিক স্টেটমেন্ট এপিআই (যার লিংক পেয়ে যে কেউ দেখতে পারবে)
 app.get('/api/public-statement/:id', async (req, res) => {
     try {
         const person = await Person.findById(req.params.id);
@@ -187,7 +211,6 @@ app.delete('/api/transactions/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// লাস্ট ৫টি লেনদেন এবং অনলাইন স্টেটমেন্ট লিংকসহ হোয়াটসঅ্যাপ মেসেজ
 app.post('/api/send-whatsapp-summary', async (req, res) => {
     try {
         const { personId } = req.body;
@@ -202,7 +225,6 @@ app.post('/api/send-whatsapp-summary', async (req, res) => {
             else totalDue -= t.amount;
         });
 
-        // সর্বশেষ ৫টি লেনদেন নেওয়া
         const last5Txs = txs.slice(-5);
         let detailsText = '';
         last5Txs.forEach((t, index) => {
@@ -214,7 +236,6 @@ app.post('/api/send-whatsapp-summary', async (req, res) => {
             }
         });
 
-        // অনলাইন ডোমেইন লিংক জেনারেট
         const protocol = req.headers['x-forwarded-proto'] || req.protocol;
         const fullHost = `${protocol}://${req.headers.host}`;
         const statementUrl = `${fullHost}/statement.html?id=${personId}`;
@@ -224,16 +245,16 @@ app.post('/api/send-whatsapp-summary', async (req, res) => {
             if (formattedPhone.startsWith('0')) formattedPhone = '88' + formattedPhone;
             const chatId = `${formattedPhone}@c.us`;
 
-            const message = ` *হিসাব বিবরণী - ${person.name}*\n\n` +
+            const message = `📋 *হিসাব বিবরণী - ${person.name}*\n\n` +
                             `*সর্বশেষ ৫টি লেনদেন:*\n${detailsText}\n` +
                             `-----------------------\n` +
                             `*সর্বমোট বকেয়া দেনা: ৳${totalDue}*\n\n` +
-                            `*সম্পূর্ণ হিসাব দেখতে নিচে ক্লিক করুন:*\n${statementUrl}`;
+                            `🔗 *সম্পূর্ণ হিসাব দেখতে নিচে ক্লিক করুন:*\n${statementUrl}`;
 
             await whatsapp.sendMessage(chatId, message);
             res.json({ success: true, message: 'হোয়াটসঅ্যাপে ৫টি লেনদেন ও স্টেটমেন্ট লিংক পাঠানো হয়েছে!' });
         } else {
-            res.status(400).json({ message: 'হোয়াটসঅ্যাপ বট রেডি নেই!' });
+            res.status(400).json({ message: 'হোয়াটসঅ্যাপ বট রেডি নেই! /qr পেজে গিয়ে স্ক্যান করুন।' });
         }
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -251,11 +272,18 @@ app.post('/api/tasks', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// সব রিমাইন্ডার ব্যাক দেওয়া (গায়েব হওয়া বন্ধ করা হলো)
 app.get('/api/tasks', async (req, res) => {
-    const tasks = await Task.find({ isNotified: false }).sort({ dateTime: 1 });
+    const tasks = await Task.find().sort({ dateTime: -1 });
     res.json(tasks);
 });
 
+app.delete('/api/tasks/:id', async (req, res) => {
+    await Task.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'রিমাইন্ডার মুছে ফেলা হয়েছে!' });
+});
+
+// ক্রন জব
 cron.schedule('* * * * *', async () => {
     const now = new Date();
     const pendingTasks = await Task.find({ dateTime: { $lte: now }, isNotified: false });
@@ -266,5 +294,12 @@ cron.schedule('* * * * *', async () => {
     });
 });
 
-const PORT = 5000;
+// --- ২৪/৭ অটো সেলফ-পিং (Render-কে সজাগ রাখার জন্য) ---
+setInterval(() => {
+    http.get('http://localhost:5000/api/persons', (res) => {
+        console.log('🔄 সেলফ পিং: সার্ভার সজাগ আছে!');
+    });
+}, 8 * 60 * 1000); // প্রতি ৮ মিনিটে পিং করবে
+
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`সার্ভার চলছে পোর্ট ${PORT}-এ...`));
