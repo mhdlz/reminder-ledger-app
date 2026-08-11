@@ -1,10 +1,11 @@
 const dns = require('dns');
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+dns.setServers(['8.8.8.8', '8.8.4.4']); // Google DNS Override
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cron = require('node-cron');
+const http = require('http');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
@@ -20,7 +21,7 @@ mongoose.connect(MONGO_URI)
     .then(() => console.log('ডাটাবেজ কানেক্টেড!'))
     .catch(err => console.error('ডাটাবেজ ভুল:', err));
 
-// স্কিমাসমূহ
+// --- স্কিমাসমূহ ---
 const Auth = mongoose.model('Auth', new mongoose.Schema({ pin: { type: String, default: '1234' } }));
 
 const Person = mongoose.model('Person', new mongoose.Schema({
@@ -45,7 +46,6 @@ const Task = mongoose.model('Task', new mongoose.Schema({
     isNotified: { type: Boolean, default: false }
 }));
 
-// --- হোয়াটসঅ্যাপ বট সেটআপ (ভার্সন ক্যাশ ফিক্সসহ) ---
 // --- পার্মানেন্ট হোয়াটসঅ্যাপ বট সেটআপ (Cross-Platform) ---
 const isRender = process.env.RENDER || false;
 const puppeteerConfig = {
@@ -53,9 +53,8 @@ const puppeteerConfig = {
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
 };
 
-// পিসিতে থাকলে পিসির ক্রোম ব্যবহার করবে, Render-এ থাকলে অটো ক্রোম ব্যবহার করবে
 if (!isRender) {
-    puppeteerConfig.channel = 'chrome';
+    puppeteerConfig.channel = 'chrome'; // পিসিতে ক্রোম ব্যবহার করবে
 }
 
 const whatsapp = new Client({
@@ -71,7 +70,7 @@ let isWhatsAppReady = false;
 let latestQRCode = '';
 
 whatsapp.on('qr', (qr) => {
-    console.log('⚡ নতুন QR Code এসেছে, লিংক: http://localhost:5000/qr');
+    console.log('⚡ নতুন QR Code এসেছে! ওয়েব লিংক: http://localhost:5000/qr');
     qrcode.generate(qr, { small: true });
     latestQRCode = qr;
 });
@@ -294,6 +293,13 @@ cron.schedule('* * * * *', async () => {
         await task.save();
     });
 });
+
+// Render-কে ২৪/৭ সজাগ রাখার অটো পিং
+setInterval(() => {
+    http.get('http://localhost:5000/api/persons', (res) => {
+        console.log('🔄 অটো পিং: সার্ভার সক্রিয় আছে!');
+    });
+}, 8 * 60 * 1000);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`সার্ভার চলছে পোর্ট ${PORT}-এ...`));
