@@ -5,7 +5,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cron = require('node-cron');
-const http = require('http');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
@@ -46,29 +45,33 @@ const Task = mongoose.model('Task', new mongoose.Schema({
     isNotified: { type: Boolean, default: false }
 }));
 
-// --- পার্মানেন্ট হোয়াটসঅ্যাপ বট সেটআপ (Linux Cloud Compatible) ---
+// --- হোয়াটসঅ্যাপ বট সেটআপ (ভার্সন ক্যাশ ফিক্সসহ) ---
+// --- পার্মানেন্ট হোয়াটসঅ্যাপ বট সেটআপ (Cross-Platform) ---
+const isRender = process.env.RENDER || false;
+const puppeteerConfig = {
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+};
+
+// পিসিতে থাকলে পিসির ক্রোম ব্যবহার করবে, Render-এ থাকলে অটো ক্রোম ব্যবহার করবে
+if (!isRender) {
+    puppeteerConfig.channel = 'chrome';
+}
+
 const whatsapp = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
-    puppeteer: {
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-gpu'
-        ]
-    }
+    webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
+    },
+    puppeteer: puppeteerConfig
 });
 
 let isWhatsAppReady = false;
 let latestQRCode = '';
 
 whatsapp.on('qr', (qr) => {
-    console.log('⚡ নতুন QR Code এসেছে:');
+    console.log('⚡ নতুন QR Code এসেছে, লিংক: http://localhost:5000/qr');
     qrcode.generate(qr, { small: true });
     latestQRCode = qr;
 });
@@ -85,7 +88,7 @@ whatsapp.on('disconnected', () => {
 });
 whatsapp.initialize();
 
-// মোবাইল থেকে QR Code স্ক্যান করার জন্য ওয়েব পেজ
+// QR Code ওয়েব পেজ
 app.get('/qr', (req, res) => {
     if (isWhatsAppReady) {
         return res.send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:green;">✅ হোয়াটসঅ্যাপ ইতোমধ্যে কানেক্টেড আছে!</h2>');
@@ -97,7 +100,7 @@ app.get('/qr', (req, res) => {
     res.send(`
         <div style="font-family:sans-serif; text-align:center; padding:20px;">
             <h2>মোবাইল দিয়ে হোয়াটসঅ্যাপ QR কোড স্ক্যান করুন</h2>
-            <img src="${qrImageUrl}" style="border:10px solid #eee; rounded:10px;" />
+            <img src="${qrImageUrl}" style="border:10px solid #eee; border-radius:10px;" />
             <p>আপনার ফোনের WhatsApp > Linked Devices এ গিয়ে স্ক্যান করুন।</p>
         </div>
     `);
@@ -254,7 +257,7 @@ app.post('/api/send-whatsapp-summary', async (req, res) => {
             await whatsapp.sendMessage(chatId, message);
             res.json({ success: true, message: 'হোয়াটসঅ্যাপে ৫টি লেনদেন ও স্টেটমেন্ট লিংক পাঠানো হয়েছে!' });
         } else {
-            res.status(400).json({ message: 'হোয়াটসঅ্যাপ বট রেডি নেই! /qr পেজে গিয়ে স্ক্যান করুন।' });
+            res.status(400).json({ message: 'হোয়াটসঅ্যাপ বট রেডি নেই! http://localhost:5000/qr পেজে গিয়ে স্ক্যান করুন।' });
         }
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -272,7 +275,6 @@ app.post('/api/tasks', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// সব রিমাইন্ডার ব্যাক দেওয়া (গায়েব হওয়া বন্ধ করা হলো)
 app.get('/api/tasks', async (req, res) => {
     const tasks = await Task.find().sort({ dateTime: -1 });
     res.json(tasks);
@@ -283,23 +285,15 @@ app.delete('/api/tasks/:id', async (req, res) => {
     res.json({ success: true, message: 'রিমাইন্ডার মুছে ফেলা হয়েছে!' });
 });
 
-// ক্রন জব
 cron.schedule('* * * * *', async () => {
     const now = new Date();
     const pendingTasks = await Task.find({ dateTime: { $lte: now }, isNotified: false });
     pendingTasks.forEach(async (task) => {
-        console.log(`⏰ এলার্ম: ${task.title}`);
+        console.log(`⏰ এলার্ম বাজছে: ${task.title}`);
         task.isNotified = true;
         await task.save();
     });
 });
-
-// --- ২৪/৭ অটো সেলফ-পিং (Render-কে সজাগ রাখার জন্য) ---
-setInterval(() => {
-    http.get('http://localhost:5000/api/persons', (res) => {
-        console.log('🔄 সেলফ পিং: সার্ভার সজাগ আছে!');
-    });
-}, 8 * 60 * 1000); // প্রতি ৮ মিনিটে পিং করবে
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`সার্ভার চলছে পোর্ট ${PORT}-এ...`));

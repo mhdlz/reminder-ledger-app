@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>অনলাইন হিসাব বিবরণী</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style> body { font-family: 'Hind Siliguri', sans-serif; } </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-xl mx-auto space-y-6">
+        
+        <!-- ব্র্যান্ড হেডার -->
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl text-center space-y-1 shadow-xl">
+            <span class="text-xs text-indigo-400 font-bold bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">ডিজিটাল স্টেটমেন্ট</span>
+            <h1 class="text-2xl font-bold text-white pt-2" id="personName">ডাটা লোড হচ্ছে...</h1>
+            <p class="text-xs text-slate-400" id="personPhone"></p>
+        </div>
+
+        <!-- ব্যালেন্স কার্ড -->
+        <div class="bg-rose-500/10 border border-rose-500/30 p-5 rounded-2xl text-center">
+            <span class="text-xs text-slate-400 block mb-1">সর্বমোট বকেয়া দেনা</span>
+            <span class="text-3xl font-bold text-rose-400" id="netBalance">৳ 0</span>
+        </div>
+
+        <!-- পুরো লেনদেনের তালিকা -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-3">
+            <h3 class="text-sm font-bold text-slate-300 border-b border-slate-700 pb-2">সম্পূর্ণ লেনদেনের বিবরণী</h3>
+            <div id="txList" class="space-y-2.5">
+                <p class="text-slate-500 text-xs text-center py-4">ডাটা লোড হচ্ছে...</p>
+            </div>
+        </div>
+
+        <!-- ফুটার -->
+        <p class="text-center text-[11px] text-slate-500">এটি একটি অটো জেনারেটেড ডিজিটাল হিসাব বিবরণী।</p>
+    </div>
+
+    <script>
+        // ইউআরএল থেকে কন্টাক্ট আইডি বের করা
+        const urlParams = new URLSearchParams(window.location.search);
+        const personId = urlParams.get('id');
+
+        async function loadPublicStatement() {
+            if (!personId) return document.body.innerHTML = '<h2 class="text-center text-rose-500 mt-10">ভুল লিংক!</h2>';
+
+            const res = await fetch(`/api/public-statement/${personId}`);
+            const data = await res.json();
+
+            if (!data.success) {
+                return document.body.innerHTML = '<h2 class="text-center text-rose-500 mt-10">হিসাব পাওয়া যায়নি!</h2>';
+            }
+
+            document.getElementById('personName').innerText = data.person.name;
+            document.getElementById('personPhone').innerText = data.person.phone ? `📱 ${data.person.phone}` : '';
+            document.getElementById('netBalance').innerText = `৳ ${data.netBalance}`;
+
+            const container = document.getElementById('txList');
+            container.innerHTML = '';
+
+            if (data.transactions.length === 0) {
+                container.innerHTML = `<p class="text-slate-500 text-xs text-center py-3">কোনো লেনদেন পাওয়া যায়নি</p>`;
+            }
+
+            data.transactions.forEach(t => {
+                const dateStr = new Date(t.date).toLocaleDateString('bn-BD');
+                container.innerHTML += `
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs">
+                        <div>
+                            <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">${dateStr}</span>
+                            <p class="text-slate-300 font-medium mt-1">${t.note || (t.type === 'TAKE' ? 'দেনা/বাকি' : 'পরিশোধ')}</p>
+                        </div>
+                        <span class="font-bold ${t.type === 'TAKE' ? 'text-rose-400' : 'text-emerald-400'}">
+                            ${t.type === 'TAKE' ? '+৳ ' : '-৳ '}${t.amount}
+                        </span>
+                    </div>
+                `;
+            });
+        }
+
+        loadPublicStatement();
+    </script>
+</body>
+</html>

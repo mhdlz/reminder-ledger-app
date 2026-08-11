@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>মাই পার্সোনাল টালিখাতা & রিমাইন্ডার</title>
+    <!-- Google Font & Tailwind -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 (সুন্দর প্রফেশনাল এলার্টের জন্য) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style> body { font-family: 'Hind Siliguri', sans-serif; } </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-3 md:p-6">
+
+    <!-- ================= সিকিউরিটি লগইন স্ক্রিন (PIN Screen) ================= -->
+    <div id="loginOverlay" class="fixed inset-0 bg-slate-950 z-50 flex justify-center items-center p-4">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl w-full max-w-xs text-center space-y-5 shadow-2xl">
+            <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto text-3xl">
+                🔒
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-white">গোপন পিন টাইপ করুন</h2>
+                <p class="text-xs text-slate-400 mt-1">ব্যক্তিগত তথ্য সুরক্ষার জন্য পিন দিন</p>
+            </div>
+            
+            <input type="password" id="inputPin" maxlength="6" placeholder="****" class="w-full text-center text-2xl tracking-widest bg-slate-950 border border-slate-800 rounded-xl p-3 outline-none text-indigo-400 font-bold focus:border-indigo-500">
+            
+            <button onclick="loginWithPin()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-bold text-sm transition">
+                অনুমতি দিন
+            </button>
+            <p class="text-[10px] text-slate-500">ডিফল্ট পিন: 1234</p>
+        </div>
+    </div>
+
+    <!-- ================= মূল অ্যাপ এলাকা ================= -->
+    <div id="appContainer" class="max-w-3xl mx-auto space-y-6 hidden">
+        
+        <!-- হেডার -->
+        <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex justify-between items-center shadow-xl">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold text-indigo-400">আমার ব্যক্তিগত হিসাব</h1>
+                <p class="text-xs text-slate-400">ডিজিটাল টালিখাতা ও রিমাইন্ডার</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="text-right">
+                    <span class="text-xs text-slate-400 block">মোট দেনা</span>
+                    <span class="text-lg font-bold text-rose-400" id="globalTotalDue">৳ 0</span>
+                </div>
+                <button onclick="openChangePinModal()" title="পিন পরিবর্তন" class="bg-slate-700 p-2 rounded-xl text-xs hover:bg-slate-600">🔑</button>
+            </div>
+        </div>
+
+        <!-- নেভিগেশন ট্যাব -->
+        <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <button id="tabPeopleBtn" onclick="showPeopleView()" class="flex-1 py-2 rounded-lg font-semibold text-sm bg-indigo-600 text-white">
+                👥 মানুষের তালিকা
+            </button>
+            <button id="tabTaskBtn" onclick="showTaskView()" class="flex-1 py-2 rounded-lg font-semibold text-sm text-slate-400 hover:text-white">
+                ⏰ রিমাইন্ডার
+            </button>
+        </div>
+
+        <!-- ১. মানুষের তালিকা -->
+        <div id="peopleView" class="space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-md font-bold text-slate-300">যাদের সাথে লেনদেন আছে</h2>
+                <button onclick="openAddPersonModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1">
+                    ➕ নতুন মানুষ যোগ করুন
+                </button>
+            </div>
+            <div id="peopleList" class="space-y-3">
+                <p class="text-slate-500 text-xs text-center py-4">ডাটা লোড হচ্ছে...</p>
+            </div>
+        </div>
+
+        <!-- ২. একক প্রোফাইল -->
+        <div id="profileView" class="space-y-4 hidden">
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+                <div>
+                    <button onclick="showPeopleView()" class="text-xs text-indigo-400 hover:underline mb-1">← পেছনে যান</button>
+                    <h2 class="text-xl font-bold text-white" id="profileName">-</h2>
+                    <p class="text-xs text-slate-400" id="profilePhone">-</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-slate-400 block">বর্তমান দেনা</span>
+                    <span class="text-xl font-bold text-rose-400" id="profileNetBalance">৳ 0</span>
+                </div>
+            </div>
+
+            <!-- লেনদেন ইনপুট ফর্ম -->
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                <h3 class="text-sm font-bold text-slate-300 mb-3" id="txFormTitle">নতুন লেনদেন যোগ করুন</h3>
+                <form id="txForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input type="hidden" id="txEditId">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">তারিখ</label>
+                        <input type="date" id="txDate" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs outline-none text-slate-200">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">ধরণ</label>
+                        <select id="txType" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs outline-none text-slate-200">
+                            <option value="TAKE">আমি নিয়েছি/দেনা (+)</option>
+                            <option value="GIVE">আমি দিয়েছি/শোধ (-)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">টাকার পরিমাণ (৳)</label>
+                        <input type="number" id="txAmount" required placeholder="500" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">নোট/বিবরণ</label>
+                        <input type="text" id="txNote" placeholder="যেমন: বাজার খরচ" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs outline-none">
+                    </div>
+                    <div class="md:col-span-2 flex gap-2 pt-2">
+                        <button type="submit" id="txSaveBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl text-xs font-bold">সেভ করুন</button>
+                        <button type="button" onclick="sendWhatsAppSummary()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 rounded-xl text-xs font-bold">📲 হোয়াটসঅ্যাপে হিসাব জানান</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ইতিহাস -->
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                <h3 class="text-sm font-bold text-slate-300 mb-3">তারিখ অনুযায়ী লেনদেনের ইতিহাস</h3>
+                <div id="txHistoryList" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- ৩. রিমাইন্ডার -->
+        <div id="taskView" class="space-y-4 hidden">
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                <h2 class="text-md font-bold text-emerald-400 mb-3">নতুন রিমাইন্ডার যোগ করুন</h2>
+                <form id="taskForm" class="space-y-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">কাজের বিবরণ (অপশনাল)</label>
+                        <input type="text" id="taskTitle" placeholder="ফাঁকা রাখলে তারিখ অনুযায়ী Untitled সেভ হবে" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">তারিখ ও সময় *</label>
+                        <input type="datetime-local" id="taskDateTime" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">টেক্সট নোট (অপশনাল)</label>
+                        <textarea id="taskTextNote" rows="2" placeholder="বিস্তারিত কিছু লিখতে চাইলে..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none"></textarea>
+                    </div>
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
+                        <label class="text-xs text-slate-400 block mb-2">ভয়েস নোট রেকর্ড (অপশনাল)</label>
+                        <div class="flex justify-center items-center gap-3">
+                            <button type="button" id="recordBtn" onclick="toggleRecord()" class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">
+                                🎙️ রেকর্ড শুরু করুন
+                            </button>
+                            <span id="recordStatus" class="text-xs text-slate-400">কোনো রেকর্ড নেই</span>
+                        </div>
+                        <audio id="audioPreview" controls class="w-full mt-2 hidden h-8"></audio>
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-xl text-xs font-bold">
+                        রিমাইন্ডার সেভ করুন
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
+                <h3 class="text-sm font-bold text-slate-300 mb-3">অপেক্ষমাণ রিমাইন্ডারসমূহ</h3>
+                <div id="taskList" class="space-y-2"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- কন্টাক্ট মোডাল -->
+    <div id="addPersonModal" class="fixed inset-0 bg-black/70 flex justify-center items-center p-4 hidden z-40">
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl w-full max-w-sm space-y-4">
+            <h3 class="text-md font-bold text-white">নতুন কন্টাক্ট যোগ করুন</h3>
+            <input type="text" id="newPersonName" placeholder="নাম/দোকানের নাম" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
+            <input type="text" id="newPersonPhone" placeholder="হোয়াটসঅ্যাপ নম্বর (অপশনাল)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
+            <div class="flex gap-2">
+                <button onclick="saveNewPerson()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 py-2 rounded-xl text-xs font-bold">যোগ করুন</button>
+                <button onclick="closeAddPersonModal()" class="bg-slate-700 py-2 px-4 rounded-xl text-xs font-bold">বাতিল</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- পিন পরিবর্তনের মোডাল -->
+    <div id="changePinModal" class="fixed inset-0 bg-black/70 flex justify-center items-center p-4 hidden z-40">
+        <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl w-full max-w-sm space-y-3">
+            <h3 class="text-md font-bold text-white">গোপন পিন পরিবর্তন করুন</h3>
+            <input type="password" id="oldPin" placeholder="পুরাতন পিন" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs outline-none">
+            <input type="password" id="newPin" placeholder="নতুন ৪-৬ ডিজিট পিন" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs outline-none">
+            <div class="flex gap-2 pt-2">
+                <button onclick="submitChangePin()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-2 rounded-xl text-xs font-bold">পরিবর্তন করুন</button>
+                <button onclick="closeChangePinModal()" class="bg-slate-700 py-2 px-4 rounded-xl text-xs font-bold">বাতিল</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let activePersonId = null;
+        let recordedAudioBase64 = null, mediaRecorder, audioChunks = [];
+
+        // চেক করা আগে লগইন করা আছে কিনা (Remember Device)
+        window.onload = () => {
+            document.getElementById('txDate').valueAsDate = new Date();
+            if (localStorage.getItem('userAppToken') === 'AUTH_SECRET_TOKEN_123') {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('appContainer').classList.remove('hidden');
+                fetchPersons();
+            }
+        };
+
+        // লগইন ফাংশন
+        async function loginWithPin() {
+            const pin = document.getElementById('inputPin').value;
+            if (!pin) return Swal.fire('ভুল!', 'পিন টাইপ করুন', 'warning');
+
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                localStorage.setItem('userAppToken', data.token); // ডিভাইস মনে রাখবে
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('appContainer').classList.remove('hidden');
+                fetchPersons();
+                Swal.fire({ icon: 'success', title: 'স্বাগতম!', timer: 1500, showConfirmButton: false });
+            } else {
+                Swal.fire('ভুল পিন!', data.message, 'error');
+            }
+        }
+
+        function openChangePinModal() { document.getElementById('changePinModal').classList.remove('hidden'); }
+        function closeChangePinModal() { document.getElementById('changePinModal').classList.add('hidden'); }
+
+        async function submitChangePin() {
+            const oldPin = document.getElementById('oldPin').value;
+            const newPin = document.getElementById('newPin').value;
+
+            const res = await fetch('/api/change-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ oldPin, newPin })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                Swal.fire('সফল!', data.message, 'success');
+                closeChangePinModal();
+            } else {
+                Swal.fire('এরর!', data.message, 'error');
+            }
+        }
+
+        function showPeopleView() {
+            document.getElementById('peopleView').classList.remove('hidden');
+            document.getElementById('profileView').classList.add('hidden');
+            document.getElementById('taskView').classList.add('hidden');
+            document.getElementById('tabPeopleBtn').className = 'flex-1 py-2 rounded-lg font-semibold text-sm bg-indigo-600 text-white';
+            document.getElementById('tabTaskBtn').className = 'flex-1 py-2 rounded-lg font-semibold text-sm text-slate-400 hover:text-white';
+            fetchPersons();
+        }
+
+        function showTaskView() {
+            document.getElementById('peopleView').classList.add('hidden');
+            document.getElementById('profileView').classList.add('hidden');
+            document.getElementById('taskView').classList.remove('hidden');
+            document.getElementById('tabTaskBtn').className = 'flex-1 py-2 rounded-lg font-semibold text-sm bg-emerald-600 text-white';
+            document.getElementById('tabPeopleBtn').className = 'flex-1 py-2 rounded-lg font-semibold text-sm text-slate-400 hover:text-white';
+            fetchTasks();
+        }
+
+        async function fetchPersons() {
+            const res = await fetch('/api/persons');
+            const data = await res.json();
+            const container = document.getElementById('peopleList');
+            container.innerHTML = '';
+            let grandTotal = 0;
+
+            if (data.length === 0) container.innerHTML = `<p class="text-slate-500 text-xs text-center py-4">কোনো নাম যুক্ত করা নেই</p>`;
+
+            data.forEach(p => {
+                grandTotal += p.netBalance;
+                container.innerHTML += `
+                    <div onclick="openProfile('${p._id}')" class="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/70 p-4 rounded-xl flex justify-between items-center cursor-pointer transition">
+                        <div>
+                            <h3 class="font-bold text-slate-200 text-sm">${p.name}</h3>
+                            <p class="text-[11px] text-slate-400">${p.phone || 'ফোন নম্বর নেই'} • ${p.totalTransactions} টি লেনদেন</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-bold ${p.netBalance >= 0 ? 'text-rose-400' : 'text-emerald-400'}">
+                                ৳ ${p.netBalance}
+                            </span>
+                            <span class="text-[10px] block text-slate-500">${p.netBalance >= 0 ? 'দেনা' : 'পাওনা'}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('globalTotalDue').innerText = `৳ ${grandTotal}`;
+        }
+
+        function openAddPersonModal() { document.getElementById('addPersonModal').classList.remove('hidden'); }
+        function closeAddPersonModal() { document.getElementById('addPersonModal').classList.add('hidden'); }
+
+        async function saveNewPerson() {
+            const name = document.getElementById('newPersonName').value;
+            const phone = document.getElementById('newPersonPhone').value;
+            if(!name) return Swal.fire('সতর্কতা', 'নাম টাইপ করুন', 'warning');
+
+            await fetch('/api/persons', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, phone })
+            });
+
+            document.getElementById('newPersonName').value = '';
+            document.getElementById('newPersonPhone').value = '';
+            closeAddPersonModal();
+            fetchPersons();
+            Swal.fire({ icon: 'success', title: 'যুক্ত হয়েছে!', timer: 1000, showConfirmButton: false });
+        }
+
+        async function openProfile(id) {
+            activePersonId = id;
+            document.getElementById('peopleView').classList.add('hidden');
+            document.getElementById('profileView').classList.remove('hidden');
+            document.getElementById('txDate').valueAsDate = new Date();
+            fetchProfileData();
+        }
+
+        async function fetchProfileData() {
+            const res = await fetch(`/api/persons/${activePersonId}/transactions`);
+            const { person, transactions, netBalance } = await res.json();
+
+            document.getElementById('profileName').innerText = person.name;
+            document.getElementById('profilePhone').innerText = person.phone || 'ফোন নম্বর নেই';
+            document.getElementById('profileNetBalance').innerText = `৳ ${netBalance}`;
+
+            const container = document.getElementById('txHistoryList');
+            container.innerHTML = '';
+
+            if (transactions.length === 0) container.innerHTML = `<p class="text-slate-500 text-xs text-center py-3">কোনো লেনদেন নেই</p>`;
+
+            transactions.forEach(t => {
+                const dateObj = new Date(t.date);
+                const dateStr = dateObj.toLocaleDateString('bn-BD');
+                const rawDateStr = dateObj.toISOString().split('T')[0];
+
+                container.innerHTML += `
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs">
+                        <div>
+                            <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">${dateStr}</span>
+                            <p class="text-slate-300 font-medium mt-1">${t.note || (t.type === 'TAKE' ? 'দেনা/বাকি' : 'পরিশোধ')}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold ${t.type === 'TAKE' ? 'text-rose-400' : 'text-emerald-400'}">
+                                ${t.type === 'TAKE' ? '+৳ ' : '-৳ '}${t.amount}
+                            </span>
+                            <button onclick="editTx('${t._id}', ${t.amount}, '${t.type}', '${t.note}', '${rawDateStr}')" class="text-slate-400 hover:text-indigo-400">✏️</button>
+                            <button onclick="deleteTx('${t._id}')" class="text-slate-400 hover:text-rose-400">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        document.getElementById('txForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const editId = document.getElementById('txEditId').value;
+            const payload = {
+                personId: activePersonId,
+                date: document.getElementById('txDate').value,
+                type: document.getElementById('txType').value,
+                amount: Number(document.getElementById('txAmount').value),
+                note: document.getElementById('txNote').value
+            };
+
+            const url = editId ? `/api/transactions/${editId}` : '/api/transactions';
+            const method = editId ? 'PUT' : 'POST';
+
+            await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            document.getElementById('txForm').reset();
+            document.getElementById('txDate').valueAsDate = new Date();
+            document.getElementById('txEditId').value = '';
+            document.getElementById('txSaveBtn').innerText = 'সেভ করুন';
+            fetchProfileData();
+            Swal.fire({ icon: 'success', title: 'সেভ হয়েছে!', timer: 1000, showConfirmButton: false });
+        });
+
+        function editTx(id, amount, type, note, rawDate) {
+            document.getElementById('txEditId').value = id;
+            document.getElementById('txDate').value = rawDate;
+            document.getElementById('txAmount').value = amount;
+            document.getElementById('txType').value = type;
+            document.getElementById('txNote').value = note;
+            document.getElementById('txSaveBtn').innerText = 'আপডেট করুন';
+        }
+
+        async function deleteTx(id) {
+            Swal.fire({
+                title: 'মুছে ফেলতে চান?',
+                text: "এটি রিকভার করা সম্ভব নয়!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#334155',
+                confirmButtonText: 'হ্যাঁ, মুছুন',
+                cancelButtonText: 'বাতিল'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+                    fetchProfileData();
+                    Swal.fire('মুছে ফেলা হয়েছে!', '', 'success');
+                }
+            });
+        }
+
+        async function sendWhatsAppSummary() {
+            Swal.fire({
+                title: 'মেসেজ পাঠাবেন?',
+                text: "কাস্টমারের হোয়াটসঅ্যাপে হিসেব পাঠানো হবে",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'হ্যাঁ, পাঠান'
+            }).then(async (res) => {
+                if(res.isConfirmed) {
+                    const response = await fetch('/api/send-whatsapp-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ personId: activePersonId })
+                    });
+                    const result = await response.json();
+                    Swal.fire(result.success ? 'সফল!' : 'ভুল!', result.message, result.success ? 'success' : 'error');
+                }
+            });
+        }
+
+        async function toggleRecord() {
+            const btn = document.getElementById('recordBtn');
+            const status = document.getElementById('recordStatus');
+
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                btn.innerText = '🎙️ রেকর্ড শুরু করুন';
+            } else {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = () => {
+                        recordedAudioBase64 = reader.result;
+                        const preview = document.getElementById('audioPreview');
+                        preview.src = recordedAudioBase64;
+                        preview.classList.remove('hidden');
+                        status.innerText = 'রেকর্ড করা হয়েছে!';
+                    };
+                };
+
+                mediaRecorder.start();
+                btn.innerText = '⏹️ থামান';
+                status.innerText = 'রেকর্ডিং...';
+            }
+        }
+
+        document.getElementById('taskForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                title: document.getElementById('taskTitle').value,
+                dateTime: document.getElementById('taskDateTime').value,
+                textNote: document.getElementById('taskTextNote').value,
+                audioData: recordedAudioBase64
+            };
+
+            await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            e.target.reset();
+            recordedAudioBase64 = null;
+            document.getElementById('audioPreview').classList.add('hidden');
+            fetchTasks();
+            Swal.fire({ icon: 'success', title: 'রিমাইন্ডার সেভ হয়েছে!', timer: 1000, showConfirmButton: false });
+        });
+
+        async function fetchTasks() {
+            const res = await fetch('/api/tasks');
+            const tasks = await res.json();
+            const container = document.getElementById('taskList');
+            container.innerHTML = '';
+
+            tasks.forEach(t => {
+                const timeStr = new Date(t.dateTime).toLocaleString('bn-BD');
+                container.innerHTML += `
+                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-xs space-y-2">
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-bold text-emerald-300 text-sm">${t.title}</h4>
+                            <span class="text-[10px] text-slate-400">⏰ ${timeStr}</span>
+                        </div>
+                        ${t.textNote ? `<p class="text-slate-300 bg-slate-800 p-2 rounded">${t.textNote}</p>` : ''}
+                        ${t.audioData ? `<audio controls src="${t.audioData}" class="w-full h-7"></audio>` : ''}
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
