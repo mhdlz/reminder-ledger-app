@@ -1,13 +1,10 @@
 const dns = require('dns');
-dns.setServers(['8.8.8.8', '8.8.4.4']); // Google DNS Override
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cron = require('node-cron');
-const http = require('http');
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
 
 const app = express();
 app.use(express.json({ limit: '15mb' }));
@@ -21,7 +18,7 @@ mongoose.connect(MONGO_URI)
     .then(() => console.log('ডাটাবেজ কানেক্টেড!'))
     .catch(err => console.error('ডাটাবেজ ভুল:', err));
 
-// --- স্কিমাসমূহ ---
+// স্কিমাসমূহ
 const Auth = mongoose.model('Auth', new mongoose.Schema({ pin: { type: String, default: '1234' } }));
 
 const Person = mongoose.model('Person', new mongoose.Schema({
@@ -45,65 +42,6 @@ const Task = mongoose.model('Task', new mongoose.Schema({
     dateTime: { type: Date, required: true },
     isNotified: { type: Boolean, default: false }
 }));
-
-// --- পার্মানেন্ট হোয়াটসঅ্যাপ বট সেটআপ (Cross-Platform) ---
-const isRender = process.env.RENDER || false;
-const puppeteerConfig = {
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-};
-
-if (!isRender) {
-    puppeteerConfig.channel = 'chrome'; // পিসিতে ক্রোম ব্যবহার করবে
-}
-
-const whatsapp = new Client({
-    authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
-    webVersionCache: {
-        type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
-    },
-    puppeteer: puppeteerConfig
-});
-
-let isWhatsAppReady = false;
-let latestQRCode = '';
-
-whatsapp.on('qr', (qr) => {
-    console.log('⚡ নতুন QR Code এসেছে! ওয়েব লিংক: http://localhost:5000/qr');
-    qrcode.generate(qr, { small: true });
-    latestQRCode = qr;
-});
-
-whatsapp.on('ready', () => {
-    console.log('✅ হোয়াটসঅ্যাপ বট পার্মানেন্টলি কানেক্টেড!');
-    isWhatsAppReady = true;
-    latestQRCode = '';
-});
-
-whatsapp.on('disconnected', () => {
-    isWhatsAppReady = false;
-    whatsapp.initialize();
-});
-whatsapp.initialize();
-
-// QR Code ওয়েব পেজ
-app.get('/qr', (req, res) => {
-    if (isWhatsAppReady) {
-        return res.send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px; color:green;">✅ হোয়াটসঅ্যাপ ইতোমধ্যে কানেক্টেড আছে!</h2>');
-    }
-    if (!latestQRCode) {
-        return res.send('<h2 style="font-family:sans-serif; text-align:center; margin-top:50px;">QR Code তৈরি হচ্ছে... ১০ সেকেন্ড পর পেজ রিফ্রেশ করুন।</h2>');
-    }
-    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(latestQRCode)}`;
-    res.send(`
-        <div style="font-family:sans-serif; text-align:center; padding:20px;">
-            <h2>মোবাইল দিয়ে হোয়াটসঅ্যাপ QR কোড স্ক্যান করুন</h2>
-            <img src="${qrImageUrl}" style="border:10px solid #eee; border-radius:10px;" />
-            <p>আপনার ফোনের WhatsApp > Linked Devices এ গিয়ে স্ক্যান করুন।</p>
-        </div>
-    `);
-});
 
 // --- এপিআই সমুহ ---
 
@@ -213,6 +151,7 @@ app.delete('/api/transactions/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ডাইরেক্ট হোয়াটসঅ্যাপ লিংক জেনারেট এপিআই
 app.post('/api/send-whatsapp-summary', async (req, res) => {
     try {
         const { personId } = req.body;
@@ -242,22 +181,18 @@ app.post('/api/send-whatsapp-summary', async (req, res) => {
         const fullHost = `${protocol}://${req.headers.host}`;
         const statementUrl = `${fullHost}/statement.html?id=${personId}`;
 
-        if (isWhatsAppReady) {
-            let formattedPhone = person.phone.replace(/[^0-9]/g, '');
-            if (formattedPhone.startsWith('0')) formattedPhone = '88' + formattedPhone;
-            const chatId = `${formattedPhone}@c.us`;
+        let formattedPhone = person.phone.replace(/[^0-9]/g, '');
+        if (formattedPhone.startsWith('0')) formattedPhone = '88' + formattedPhone;
 
-            const message = `📋 *হিসাব বিবরণী - ${person.name}*\n\n` +
-                            `*সর্বশেষ ৫টি লেনদেন:*\n${detailsText}\n` +
-                            `-----------------------\n` +
-                            `*সর্বমোট বকেয়া দেনা: ৳${totalDue}*\n\n` +
-                            `🔗 *সম্পূর্ণ হিসাব দেখতে নিচে ক্লিক করুন:*\n${statementUrl}`;
+        const message = `📋 *হিসাব বিবরণী - ${person.name}*\n\n` +
+                        `*সর্বশেষ ৫টি লেনদেন:*\n${detailsText}\n` +
+                        `-----------------------\n` +
+                        `*সর্বমোট বকেয়া দেনা: ৳${totalDue}*\n\n` +
+                        `🔗 *সম্পূর্ণ হিসাব দেখতে নিচে ক্লিক করুন:*\n${statementUrl}`;
 
-            await whatsapp.sendMessage(chatId, message);
-            res.json({ success: true, message: 'হোয়াটসঅ্যাপে ৫টি লেনদেন ও স্টেটমেন্ট লিংক পাঠানো হয়েছে!' });
-        } else {
-            res.status(400).json({ message: 'হোয়াটসঅ্যাপ বট রেডি নেই! http://localhost:5000/qr পেজে গিয়ে স্ক্যান করুন।' });
-        }
+        const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+
+        res.json({ success: true, whatsappUrl: whatsappUrl, message: 'হোয়াটসঅ্যাপে রিডাইরেক্ট করা হচ্ছে...' });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -288,18 +223,11 @@ cron.schedule('* * * * *', async () => {
     const now = new Date();
     const pendingTasks = await Task.find({ dateTime: { $lte: now }, isNotified: false });
     pendingTasks.forEach(async (task) => {
-        console.log(`⏰ এলার্ম বাজছে: ${task.title}`);
+        console.log(`⏰ এলার্ম: ${task.title}`);
         task.isNotified = true;
         await task.save();
     });
 });
-
-// Render-কে ২৪/৭ সজাগ রাখার অটো পিং
-setInterval(() => {
-    http.get('http://localhost:5000/api/persons', (res) => {
-        console.log('🔄 অটো পিং: সার্ভার সক্রিয় আছে!');
-    });
-}, 8 * 60 * 1000);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`সার্ভার চলছে পোর্ট ${PORT}-এ...`));
