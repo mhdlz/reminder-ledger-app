@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>মাই পার্সোনাল টালিখাতা & রিমাইন্ডার</title>
-    <!-- Google Font & Tailwind -->
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SweetAlert2 (প্রফেশনাল এলার্টের জন্য) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style> body { font-family: 'Hind Siliguri', sans-serif; } </style>
 </head>
@@ -29,10 +27,9 @@
         </div>
     </div>
 
-    <!-- মূল অ্যাপ এলাকা -->
+    <!-- মূল অ্যাপ -->
     <div id="appContainer" class="max-w-3xl mx-auto space-y-6 hidden">
         
-        <!-- হেডার -->
         <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex justify-between items-center shadow-xl">
             <div>
                 <h1 class="text-xl md:text-2xl font-bold text-indigo-400">আমার ব্যক্তিগত হিসাব</h1>
@@ -47,7 +44,6 @@
             </div>
         </div>
 
-        <!-- নেভিগেশন ট্যাব -->
         <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
             <button id="tabPeopleBtn" onclick="showPeopleView()" class="flex-1 py-2 rounded-lg font-semibold text-sm bg-indigo-600 text-white">
                 👥 মানুষের তালিকা
@@ -57,7 +53,7 @@
             </button>
         </div>
 
-        <!-- ১. মানুষের তালিকা (হোম ভিউ) -->
+        <!-- ১. মানুষের তালিকা -->
         <div id="peopleView" class="space-y-4">
             <div class="flex justify-between items-center">
                 <h2 class="text-md font-bold text-slate-300">যাদের সাথে লেনদেন আছে</h2>
@@ -70,7 +66,7 @@
             </div>
         </div>
 
-        <!-- ২. একক প্রোফাইল ভিউ -->
+        <!-- ২. একক প্রোফাইল -->
         <div id="profileView" class="space-y-4 hidden">
             <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
                 <div>
@@ -120,11 +116,11 @@
             </div>
         </div>
 
-        <!-- ৩. রিমাইন্ডার ভিউ -->
+        <!-- ৩. রিমাইন্ডার -->
         <div id="taskView" class="space-y-4 hidden">
             
             <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl flex justify-between items-center">
-                <span class="text-xs text-amber-300 font-semibold">🔔 এলার্ম সাউন্ড ও নোটিফিকেশন চালু করতে:</span>
+                <span class="text-xs text-amber-300 font-semibold">🔔 এলার্ম সাউন্ড ও মোবাইল ভাইব্রেশন সক্রিয় করতে:</span>
                 <button onclick="enableAlarmSound()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs">
                     এলার্ম অন করুন
                 </button>
@@ -134,7 +130,7 @@
                 <h2 class="text-md font-bold text-emerald-400 mb-3">নতুন রিমাইন্ডার যোগ করুন</h2>
                 <form id="taskForm" class="space-y-3">
                     <div>
-                        <label class="text-xs text-slate-400 block mb-1">কাজের বিবরণ (অপশনাল)</label>
+                        <label class="text-xs text-slate-400 block mb-1">কাজের বিবরণ (অপショナル)</label>
                         <input type="text" id="taskTitle" placeholder="ফাঁকা রাখলে তারিখ অনুযায়ী Untitled সেভ হবে" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
                     </div>
                     <div>
@@ -142,11 +138,11 @@
                         <input type="datetime-local" id="taskDateTime" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
                     </div>
                     <div>
-                        <label class="text-xs text-slate-400 block mb-1">টেক্সট নোট (অপশনাল)</label>
+                        <label class="text-xs text-slate-400 block mb-1">টেক্সট নোট (অপショナル)</label>
                         <textarea id="taskTextNote" rows="2" placeholder="বিস্তারিত কিছু লিখতে চাইলে..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none"></textarea>
                     </div>
                     <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
-                        <label class="text-xs text-slate-400 block mb-2">ভয়েস নোট রেকর্ড (অপশনাল)</label>
+                        <label class="text-xs text-slate-400 block mb-2">ভয়েস নোট রেকর্ড (অপショナル)</label>
                         <div class="flex justify-center items-center gap-3">
                             <button type="button" id="recordBtn" onclick="toggleRecord()" class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">
                                 🎙️ রেকর্ড শুরু করুন
@@ -177,7 +173,7 @@
         <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl w-full max-w-sm space-y-4">
             <h3 class="text-md font-bold text-white">নতুন কন্টাক্ট যোগ করুন</h3>
             <input type="text" id="newPersonName" placeholder="নাম/দোকানের নাম" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
-            <input type="text" id="newPersonPhone" placeholder="হোয়াটসঅ্যাপ নম্বর (অপশনাল)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
+            <input type="text" id="newPersonPhone" placeholder="হোয়াটসঅ্যাপ নম্বর (অপショナル)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
             <div class="flex gap-2">
                 <button onclick="saveNewPerson()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 py-2 rounded-xl text-xs font-bold">যোগ করুন</button>
                 <button onclick="closeAddPersonModal()" class="bg-slate-700 py-2 px-4 rounded-xl text-xs font-bold">বাতিল</button>
@@ -202,6 +198,11 @@
         let activePersonId = null;
         let recordedAudioBase64 = null, mediaRecorder, audioChunks = [];
 
+        // Service Worker রেজিস্টার করা
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(e=>console.log(e));
+        }
+
         window.onload = () => {
             document.getElementById('txDate').valueAsDate = new Date();
             if (localStorage.getItem('userAppToken') === 'AUTH_SECRET_TOKEN_123') {
@@ -217,6 +218,7 @@
                 Swal.fire('সফল!', 'এলার্ম পারমিশন অন করা হয়েছে!', 'success');
             }).catch(e => console.log(e));
 
+            if ('vibrate' in navigator) navigator.vibrate([500, 250, 500]);
             if ("Notification" in window) Notification.requestPermission();
         }
 
@@ -433,7 +435,7 @@
             });
         }
 
-        // সরাসরি হোয়াটসঅ্যাপ অ্যাপ ওপেন করবে
+        // মোবাইল অ্যাপ এবং ওয়েব দুটি ডাইরেক্ট সাপোর্ট
         async function sendWhatsAppSummary() {
             const response = await fetch('/api/send-whatsapp-summary', {
                 method: 'POST',
@@ -442,8 +444,10 @@
             });
             const result = await response.json();
 
-            if (result.success && result.whatsappUrl) {
-                window.open(result.whatsappUrl, '_blank');
+            if (result.success) {
+                // মোবাইল অ্যাপ ও ব্রাউজার ডিটেকশন
+                const targetUrl = result.whatsappAppUrl || result.whatsappWebUrl;
+                window.location.href = targetUrl; // সরাসরি অ্যান্ড্রয়েড WhatsApp অ্যাপ ওপেন করবে
             } else {
                 Swal.fire('ভুল!', result.message, 'error');
             }
@@ -518,6 +522,7 @@
 
                 if (isPassed && !t.isNotified) {
                     document.getElementById('alarmAudio').play().catch(e=>console.log(e));
+                    if ('vibrate' in navigator) navigator.vibrate([1000, 500, 1000, 500, 1000]);
                     if ("Notification" in window && Notification.permission === "granted") {
                         new Notification("⏰ রিমাইন্ডার এলার্ম!", { body: t.title });
                     }

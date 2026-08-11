@@ -151,7 +151,7 @@ app.delete('/api/transactions/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ডাইরেক্ট হোয়াটসঅ্যাপ লিংক জেনারেট এপিআই
+// অ্যান্ডোয়েড অ্যাপ এবং ওয়েবের জন্য ডাবল হোয়াটসঅ্যাপ লিংক সাপোর্ট
 app.post('/api/send-whatsapp-summary', async (req, res) => {
     try {
         const { personId } = req.body;
@@ -190,9 +190,11 @@ app.post('/api/send-whatsapp-summary', async (req, res) => {
                         `*সর্বমোট বকেয়া দেনা: ৳${totalDue}*\n\n` +
                         `🔗 *সম্পূর্ণ হিসাব দেখতে নিচে ক্লিক করুন:*\n${statementUrl}`;
 
-        const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+        // অ্যান্ডোয়েড অ্যাপ লিংক ও ওয়েব লিংক দুটিই পাঠানো হচ্ছে
+        const whatsappAppUrl = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+        const whatsappWebUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
 
-        res.json({ success: true, whatsappUrl: whatsappUrl, message: 'হোয়াটসঅ্যাপে রিডাইরেক্ট করা হচ্ছে...' });
+        res.json({ success: true, whatsappAppUrl, whatsappWebUrl, message: 'হোয়াটসঅ্যাপে ওপেন করা হচ্ছে...' });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
