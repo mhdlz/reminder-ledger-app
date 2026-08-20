@@ -3,43 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>অ্যাসিস্টেন্ট</title>
-    <!-- Google Font & Tailwind -->
+    <title>মাই পার্সোনাল টালিখাতা & রিমাইন্ডার</title>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SweetAlert2 (সুন্দর প্রফেশনাল এলার্টের জন্য) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style> body { font-family: 'Hind Siliguri', sans-serif; } </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-3 md:p-6">
 
-    <!-- ================= সিকিউরিটি লগইন স্ক্রিন (PIN Screen) ================= -->
+    <!-- সিকিউরিটি লগইন পিন স্ক্রিন -->
     <div id="loginOverlay" class="fixed inset-0 bg-slate-950 z-50 flex justify-center items-center p-4">
         <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl w-full max-w-xs text-center space-y-5 shadow-2xl">
-            <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto text-3xl">
-                🔒
-            </div>
+            <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto text-3xl">🔒</div>
             <div>
-                <h2 class="text-xl font-bold text-white"> পিন টাইপ করুন</h2>
-                <p class="text-xs text-slate-400 mt-1"> পিন দিন</p>
+                <h2 class="text-xl font-bold text-white">গোপন পিন টাইপ করুন</h2>
+                <p class="text-xs text-slate-400 mt-1">ব্যক্তিগত তথ্য সুরক্ষার জন্য পিন দিন</p>
             </div>
-            
             <input type="password" id="inputPin" maxlength="6" placeholder="****" class="w-full text-center text-2xl tracking-widest bg-slate-950 border border-slate-800 rounded-xl p-3 outline-none text-indigo-400 font-bold focus:border-indigo-500">
-            
             <button onclick="loginWithPin()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-bold text-sm transition">
                 অনুমতি দিন
             </button>
-            <p class="text-[10px] text-slate-500">পিন</p>
+            <p class="text-[10px] text-slate-500">ডিফল্ট পিন: 1234</p>
         </div>
     </div>
 
-    <!-- ================= মূল অ্যাপ এলাকা ================= -->
+    <!-- মূল অ্যাপ এলাকা -->
     <div id="appContainer" class="max-w-3xl mx-auto space-y-6 hidden">
         
         <!-- হেডার -->
         <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex justify-between items-center shadow-xl">
             <div>
-                <h1 class="text-xl md:text-2xl font-bold text-indigo-400">অ্যাসিস্টেন্ট</h1>
+                <h1 class="text-xl md:text-2xl font-bold text-indigo-400">আমার ব্যক্তিগত হিসাব</h1>
                 <p class="text-xs text-slate-400">ডিজিটাল টালিখাতা ও রিমাইন্ডার</p>
             </div>
             <div class="flex items-center gap-3">
@@ -54,7 +48,7 @@
         <!-- নেভিগেশন ট্যাব -->
         <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
             <button id="tabPeopleBtn" onclick="showPeopleView()" class="flex-1 py-2 rounded-lg font-semibold text-sm bg-indigo-600 text-white">
-               তালিকা
+                👥 মানুষের তালিকা
             </button>
             <button id="tabTaskBtn" onclick="showTaskView()" class="flex-1 py-2 rounded-lg font-semibold text-sm text-slate-400 hover:text-white">
                 ⏰ রিমাইন্ডার
@@ -66,7 +60,7 @@
             <div class="flex justify-between items-center">
                 <h2 class="text-md font-bold text-slate-300">যাদের সাথে লেনদেন আছে</h2>
                 <button onclick="openAddPersonModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1">
-                    ➕ যোগ করুন
+                    ➕ নতুন মানুষ যোগ করুন
                 </button>
             </div>
             <div id="peopleList" class="space-y-3">
@@ -88,9 +82,8 @@
                 </div>
             </div>
 
-            <!-- লেনদেন ইনপুট ফর্ম -->
             <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
-                <h3 class="text-sm font-bold text-slate-300 mb-3" id="txFormTitle">লেনদেন যোগ করুন</h3>
+                <h3 class="text-sm font-bold text-slate-300 mb-3" id="txFormTitle">নতুন লেনদেন যোগ করুন</h3>
                 <form id="txForm" class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <input type="hidden" id="txEditId">
                     <div>
@@ -100,8 +93,8 @@
                     <div>
                         <label class="text-xs text-slate-400 block mb-1">ধরণ</label>
                         <select id="txType" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs outline-none text-slate-200">
-                            <option value="TAKE">নিয়েছি/দেনা (+)</option>
-                            <option value="GIVE"> দিয়েছি/শোধ (-)</option>
+                            <option value="TAKE">আমি নিয়েছি/দেনা (+)</option>
+                            <option value="GIVE">আমি দিয়েছি/শোধ (-)</option>
                         </select>
                     </div>
                     <div>
@@ -112,14 +105,15 @@
                         <label class="text-xs text-slate-400 block mb-1">নোট/বিবরণ</label>
                         <input type="text" id="txNote" placeholder="যেমন: বাজার খরচ" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs outline-none">
                     </div>
-                    <div class="md:col-span-2 flex gap-2 pt-2">
+                    <div class="md:col-span-2 flex flex-col md:flex-row gap-2 pt-2">
                         <button type="submit" id="txSaveBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl text-xs font-bold">সেভ করুন</button>
-                        <button type="button" onclick="sendWhatsAppSummary()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 rounded-xl text-xs font-bold">📲 হোয়াটসঅ্যাপে হিসাব জানান</button>
+                        <button type="button" onclick="sendWhatsAppSummary()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1">
+                            📲 হোয়াটসঅ্যাপে হিসাব পাঠান
+                        </button>
                     </div>
                 </form>
             </div>
 
-            <!-- ইতিহাস -->
             <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
                 <h3 class="text-sm font-bold text-slate-300 mb-3">তারিখ অনুযায়ী লেনদেনের ইতিহাস</h3>
                 <div id="txHistoryList" class="space-y-2"></div>
@@ -128,11 +122,19 @@
 
         <!-- ৩. রিমাইন্ডার -->
         <div id="taskView" class="space-y-4 hidden">
+            
+            <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl flex justify-between items-center">
+                <span class="text-xs text-amber-300 font-semibold">🔔 এলার্ম সাউন্ড ও নোটিফিকেশন সচল করতে:</span>
+                <button onclick="enableAlarmSound()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs">
+                    এলার্ম অন/টেস্ট করুন
+                </button>
+            </div>
+
             <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
                 <h2 class="text-md font-bold text-emerald-400 mb-3">নতুন রিমাইন্ডার যোগ করুন</h2>
                 <form id="taskForm" class="space-y-3">
                     <div>
-                        <label class="text-xs text-slate-400 block mb-1">কাজের বিবরণ </label>
+                        <label class="text-xs text-slate-400 block mb-1">কাজের বিবরণ (অপশনাল)</label>
                         <input type="text" id="taskTitle" placeholder="ফাঁকা রাখলে তারিখ অনুযায়ী Untitled সেভ হবে" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
                     </div>
                     <div>
@@ -140,11 +142,11 @@
                         <input type="datetime-local" id="taskDateTime" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
                     </div>
                     <div>
-                        <label class="text-xs text-slate-400 block mb-1">টেক্সট নোট </label>
+                        <label class="text-xs text-slate-400 block mb-1">টেক্সট নোট (অপশনাল)</label>
                         <textarea id="taskTextNote" rows="2" placeholder="বিস্তারিত কিছু লিখতে চাইলে..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none"></textarea>
                     </div>
                     <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-center">
-                        <label class="text-xs text-slate-400 block mb-2">ভয়েস নোট রেকর্ড </label>
+                        <label class="text-xs text-slate-400 block mb-2">ভয়েস নোট রেকর্ড (অপশনাল)</label>
                         <div class="flex justify-center items-center gap-3">
                             <button type="button" id="recordBtn" onclick="toggleRecord()" class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold">
                                 🎙️ রেকর্ড শুরু করুন
@@ -160,7 +162,7 @@
             </div>
 
             <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
-                <h3 class="text-sm font-bold text-slate-300 mb-3">অপেক্ষমাণ রিমাইন্ডারসমূহ</h3>
+                <h3 class="text-sm font-bold text-slate-300 mb-3">সব রিমাইন্ডারের তালিকা</h3>
                 <div id="taskList" class="space-y-2"></div>
             </div>
         </div>
@@ -172,7 +174,7 @@
         <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl w-full max-w-sm space-y-4">
             <h3 class="text-md font-bold text-white">নতুন কন্টাক্ট যোগ করুন</h3>
             <input type="text" id="newPersonName" placeholder="নাম/দোকানের নাম" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
-            <input type="text" id="newPersonPhone" placeholder="হোয়াটসঅ্যাপ নম্বর " class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
+            <input type="text" id="newPersonPhone" placeholder="হোয়াটসঅ্যাপ নম্বর (যেমন: 017xxxxxxxx)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs outline-none">
             <div class="flex gap-2">
                 <button onclick="saveNewPerson()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 py-2 rounded-xl text-xs font-bold">যোগ করুন</button>
                 <button onclick="closeAddPersonModal()" class="bg-slate-700 py-2 px-4 rounded-xl text-xs font-bold">বাতিল</button>
@@ -180,10 +182,10 @@
         </div>
     </div>
 
-    <!-- পিন পরিবর্তনের মোডাল -->
+    <!-- পিন মোডাল -->
     <div id="changePinModal" class="fixed inset-0 bg-black/70 flex justify-center items-center p-4 hidden z-40">
         <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl w-full max-w-sm space-y-3">
-            <h3 class="text-md font-bold text-white"> পিন পরিবর্তন করুন</h3>
+            <h3 class="text-md font-bold text-white">গোপন পিন পরিবর্তন করুন</h3>
             <input type="password" id="oldPin" placeholder="পুরাতন পিন" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs outline-none">
             <input type="password" id="newPin" placeholder="নতুন ৪-৬ ডিজিট পিন" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs outline-none">
             <div class="flex gap-2 pt-2">
@@ -195,19 +197,119 @@
 
     <script>
         let activePersonId = null;
+        let activePersonData = null;
         let recordedAudioBase64 = null, mediaRecorder, audioChunks = [];
+        let alarmIntervalId = null;
+        let audioCtx = null;
 
-        // চেক করা আগে লগইন করা আছে কিনা (Remember Device)
         window.onload = () => {
             document.getElementById('txDate').valueAsDate = new Date();
-            if (localStorage.getItem('userAppToken') === 'AUTH_SECRET_TOKEN_123') {
+            if (localStorage.getItem('userAppToken')) {
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('appContainer').classList.remove('hidden');
                 fetchPersons();
+                startReminderChecker();
             }
         };
 
-        // লগইন ফাংশন
+        // পিওর ডিজিটাল অ্যালার্ম বিপ সাউন্ড (কোনো ইন্টারনেট বা এক্সটার্নাল লিংকের প্রয়োজন নেই)
+        function playBeepSound() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 Note
+                osc.frequency.setValueAtTime(440, audioCtx.currentTime + 0.15); // A4 Note
+                
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+            } catch(e) {
+                console.error("Audio Context error:", e);
+            }
+        }
+
+        function triggerContinuousAlarm(taskTitle, taskId, audioData) {
+            // একটানা অ্যালার্ম বাজানো
+            if (alarmIntervalId) clearInterval(alarmIntervalId);
+            playBeepSound();
+            alarmIntervalId = setInterval(playBeepSound, 500);
+
+            if ('vibrate' in navigator) navigator.vibrate([800, 400, 800, 400, 800]);
+
+            let voiceAudioHtml = '';
+            if (audioData) {
+                voiceAudioHtml = `<audio autoplay controls src="${audioData}" class="w-full mt-3"></audio>`;
+            }
+
+            Swal.fire({
+                title: '⏰ অ্যালার্ম রিমাইন্ডার!',
+                html: `
+                    <div class="text-left space-y-2">
+                        <p class="font-bold text-amber-500 text-base">${taskTitle}</p>
+                        ${voiceAudioHtml}
+                    </div>
+                `,
+                icon: 'warning',
+                confirmButtonText: '🔕 অ্যালার্ম বন্ধ করুন',
+                confirmButtonColor: '#e11d48',
+                allowOutsideClick: false
+            }).then(async () => {
+                if (alarmIntervalId) {
+                    clearInterval(alarmIntervalId);
+                    alarmIntervalId = null;
+                }
+                await fetch(`/api/tasks/${taskId}/notified`, { method: 'PATCH' });
+                fetchTasks();
+            });
+        }
+
+        function enableAlarmSound() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            playBeepSound();
+
+            if ('vibrate' in navigator) navigator.vibrate([500, 250, 500]);
+            if ("Notification" in window) Notification.requestPermission();
+            Swal.fire('সফল!', 'অ্যালার্ম সাউন্ড ও নোটিফিকেশন সচল আছে!', 'success');
+        }
+
+        // প্রতি ১০ সেকেন্ড পর পর অ্যালার্ম চেক করার অটোমেটিক চেকার
+        function startReminderChecker() {
+            checkDueReminders();
+            setInterval(checkDueReminders, 10000);
+        }
+
+        async function checkDueReminders() {
+            try {
+                const res = await fetch('/api/tasks');
+                const tasks = await res.json();
+                const now = new Date().getTime();
+
+                for (let t of tasks) {
+                    const taskTime = new Date(t.dateTime).getTime();
+                    // যদি সময় হয়ে যায় বা পেরিয়ে যায় এবং এখনও নোটিফাই না হয়ে থাকে
+                    if (taskTime <= now && !t.isNotified && !alarmIntervalId) {
+                        triggerContinuousAlarm(t.title, t._id, t.audioData);
+                        if ("Notification" in window && Notification.permission === "granted") {
+                            new Notification("⏰ রিমাইন্ডার অ্যালার্ম!", { body: t.title });
+                        }
+                        break;
+                    }
+                }
+            } catch (e) {
+                console.log("Reminder check error", e);
+            }
+        }
+
         async function loginWithPin() {
             const pin = document.getElementById('inputPin').value;
             if (!pin) return Swal.fire('ভুল!', 'পিন টাইপ করুন', 'warning');
@@ -220,11 +322,12 @@
             const data = await res.json();
 
             if (data.success) {
-                localStorage.setItem('userAppToken', data.token); // ডিভাইস মনে রাখবে
+                localStorage.setItem('userAppToken', data.token);
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('appContainer').classList.remove('hidden');
                 fetchPersons();
-                Swal.fire({ icon: 'success', title: 'স্বাগতম!', timer: 1500, showConfirmButton: false });
+                startReminderChecker();
+                Swal.fire({ icon: 'success', title: 'স্বাগতম!', timer: 1200, showConfirmButton: false });
             } else {
                 Swal.fire('ভুল পিন!', data.message, 'error');
             }
@@ -304,8 +407,8 @@
         function closeAddPersonModal() { document.getElementById('addPersonModal').classList.add('hidden'); }
 
         async function saveNewPerson() {
-            const name = document.getElementById('newPersonName').value;
-            const phone = document.getElementById('newPersonPhone').value;
+            const name = document.getElementById('newPersonName').value.trim();
+            const phone = document.getElementById('newPersonPhone').value.trim();
             if(!name) return Swal.fire('সতর্কতা', 'নাম টাইপ করুন', 'warning');
 
             await fetch('/api/persons', {
@@ -331,18 +434,19 @@
 
         async function fetchProfileData() {
             const res = await fetch(`/api/persons/${activePersonId}/transactions`);
-            const { person, transactions, netBalance } = await res.json();
+            const data = await res.json();
+            activePersonData = data;
 
-            document.getElementById('profileName').innerText = person.name;
-            document.getElementById('profilePhone').innerText = person.phone || 'ফোন নম্বর নেই';
-            document.getElementById('profileNetBalance').innerText = `৳ ${netBalance}`;
+            document.getElementById('profileName').innerText = data.person.name;
+            document.getElementById('profilePhone').innerText = data.person.phone ? `📱 ${data.person.phone}` : 'ফোন নম্বর নেই';
+            document.getElementById('profileNetBalance').innerText = `৳ ${data.netBalance}`;
 
             const container = document.getElementById('txHistoryList');
             container.innerHTML = '';
 
-            if (transactions.length === 0) container.innerHTML = `<p class="text-slate-500 text-xs text-center py-3">কোনো লেনদেন নেই</p>`;
+            if (data.transactions.length === 0) container.innerHTML = `<p class="text-slate-500 text-xs text-center py-3">কোনো লেনদেন নেই</p>`;
 
-            transactions.forEach(t => {
+            data.transactions.forEach(t => {
                 const dateObj = new Date(t.date);
                 const dateStr = dateObj.toLocaleDateString('bn-BD');
                 const rawDateStr = dateObj.toISOString().split('T')[0];
@@ -405,7 +509,7 @@
         async function deleteTx(id) {
             Swal.fire({
                 title: 'মুছে ফেলতে চান?',
-                text: " রিকভার করা সম্ভব নয়!",
+                text: "এটি রিকভার করা সম্ভব নয়!",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#e11d48',
@@ -421,26 +525,42 @@
             });
         }
 
-        async function sendWhatsAppSummary() {
-            Swal.fire({
-                title: 'মেসেজ পাঠাবেন?',
-                text: "কাস্টমারের হোয়াটসঅ্যাপে হিসেব পাঠানো হবে",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'হ্যাঁ, পাঠান'
-            }).then(async (res) => {
-                if(res.isConfirmed) {
-                    const response = await fetch('/api/send-whatsapp-summary', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ personId: activePersonId })
-                    });
-                    const result = await response.json();
-                    Swal.fire(result.success ? 'সফল!' : 'ভুল!', result.message, result.success ? 'success' : 'error');
-                }
+        // WhatsApp পাঠানোর ১০০% কার্যকর লজিক
+        function sendWhatsAppSummary() {
+            if (!activePersonData || !activePersonData.person || !activePersonData.person.phone) {
+                return Swal.fire('ফোন নম্বর নেই!', 'এই ব্যক্তির প্রোফাইলে কোনো ফোন নম্বর দেওয়া নেই!', 'warning');
+            }
+
+            const person = activePersonData.person;
+            const txs = (activePersonData.transactions || []).slice(0, 5);
+            let details = '';
+
+            txs.forEach((t, i) => {
+                const d = new Date(t.date).toLocaleDateString('bn-BD');
+                details += `${i+1}. ${d}: ${t.type === 'TAKE' ? '(+) দেনা' : '(-) শোধ'} ৳${t.amount} ${t.note ? '['+t.note+']' : ''}\n`;
             });
+
+            const statementUrl = `${window.location.origin}/statement.html?id=${person._id}`;
+            
+            // ফোন নম্বর ফরম্যাট করা (বাংলাদেশি কোড হ্যান্ডেলিং)
+            let phone = person.phone.replace(/[^0-9]/g, '');
+            if (phone.startsWith('0')) {
+                phone = '88' + phone;
+            } else if (!phone.startsWith('88') && phone.length === 10) {
+                phone = '880' + phone;
+            }
+
+            const msg = `📋 *হিসাব বিবরণী - ${person.name}*\n\n` +
+                        `*সর্বশেষ লেনদেনসমূহ:*\n${details || 'কোনো পূর্ববর্তী লেনদেন নেই\n'}` +
+                        `------------------------------\n` +
+                        `*বর্তমান মোট দেনা বকেয়া: ৳${activePersonData.netBalance}*\n\n` +
+                        `🔗 *সম্পূর্ণ অনলাইন বিবরণী দেখতে নিচের লিংকে যান:*\n${statementUrl}`;
+
+            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+            window.open(waUrl, '_blank');
         }
 
+        // ভয়েস রেকর্ডার
         async function toggleRecord() {
             const btn = document.getElementById('recordBtn');
             const status = document.getElementById('recordStatus');
@@ -449,27 +569,31 @@
                 mediaRecorder.stop();
                 btn.innerText = '🎙️ রেকর্ড শুরু করুন';
             } else {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
 
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                    const reader = new FileReader();
-                    reader.readAsDataURL(audioBlob);
-                    reader.onloadend = () => {
-                        recordedAudioBase64 = reader.result;
-                        const preview = document.getElementById('audioPreview');
-                        preview.src = recordedAudioBase64;
-                        preview.classList.remove('hidden');
-                        status.innerText = 'রেকর্ড করা হয়েছে!';
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = () => {
+                            recordedAudioBase64 = reader.result;
+                            const preview = document.getElementById('audioPreview');
+                            preview.src = recordedAudioBase64;
+                            preview.classList.remove('hidden');
+                            status.innerText = '✅ রেকর্ড প্রস্তুত';
+                        };
                     };
-                };
 
-                mediaRecorder.start();
-                btn.innerText = '⏹️ থামান';
-                status.innerText = 'রেকর্ডিং...';
+                    mediaRecorder.start();
+                    btn.innerText = '⏹️ থামান';
+                    status.innerText = 'রেকর্ডিং হচ্ছে...';
+                } catch (err) {
+                    Swal.fire('মাইক্রোফোন পারমিশন দিন!', 'ব্রাউজার সেটিং থেকে Microphone Allow করুন।', 'error');
+                }
             }
         }
 
@@ -491,8 +615,9 @@
             e.target.reset();
             recordedAudioBase64 = null;
             document.getElementById('audioPreview').classList.add('hidden');
+            document.getElementById('recordStatus').innerText = 'কোনো রেকর্ড নেই';
             fetchTasks();
-            Swal.fire({ icon: 'success', title: 'রিমাইন্ডার সেভ হয়েছে!', timer: 1000, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: 'রিমাইন্ডার সেভ হয়েছে!', timer: 1200, showConfirmButton: false });
         });
 
         async function fetchTasks() {
@@ -501,18 +626,45 @@
             const container = document.getElementById('taskList');
             container.innerHTML = '';
 
+            const now = new Date();
+
             tasks.forEach(t => {
-                const timeStr = new Date(t.dateTime).toLocaleString('bn-BD');
+                const taskTime = new Date(t.dateTime);
+                const timeStr = taskTime.toLocaleString('bn-BD');
+                const isPassed = taskTime <= now;
+
                 container.innerHTML += `
-                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-xs space-y-2">
+                    <div class="bg-slate-900 p-3 rounded-xl border ${isPassed ? 'border-amber-500/50' : 'border-slate-700'} text-xs space-y-2">
                         <div class="flex justify-between items-start">
-                            <h4 class="font-bold text-emerald-300 text-sm">${t.title}</h4>
-                            <span class="text-[10px] text-slate-400">⏰ ${timeStr}</span>
+                            <h4 class="font-bold ${isPassed ? 'text-amber-400' : 'text-emerald-300'} text-sm">
+                                ${t.title} ${isPassed ? '<span class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded ml-2">অতীত</span>' : ''}
+                            </h4>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-slate-400">⏰ ${timeStr}</span>
+                                <button onclick="deleteTask('${t._id}')" class="text-rose-400 hover:text-rose-300 text-sm">🗑️</button>
+                            </div>
                         </div>
-                        ${t.textNote ? `<p class="text-slate-300 bg-slate-800 p-2 rounded">${t.textNote}</p>` : ''}
-                        ${t.audioData ? `<audio controls src="${t.audioData}" class="w-full h-7"></audio>` : ''}
+                        ${t.textNote ? `<p class="text-slate-300 bg-slate-800 p-2 rounded text-[11px]">${t.textNote}</p>` : ''}
+                        ${t.audioData ? `<audio controls src="${t.audioData}" class="w-full h-7 mt-1"></audio>` : ''}
                     </div>
                 `;
+            });
+        }
+
+        async function deleteTask(id) {
+            Swal.fire({
+                title: 'রিমাইন্ডার ডিলিট করতে চান?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#334155',
+                confirmButtonText: 'হ্যাঁ, মুছুন',
+                cancelButtonText: 'না'
+            }).then(async (r) => {
+                if(r.isConfirmed) {
+                    await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+                    fetchTasks();
+                }
             });
         }
     </script>

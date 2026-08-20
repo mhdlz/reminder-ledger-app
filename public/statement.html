@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>অনলাইন হিসাব বিবরণী</title>
+    <title>ডিজিটাল হিসাব বিবরণী</title>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style> body { font-family: 'Hind Siliguri', sans-serif; } </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8">
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 select-none">
 
     <div class="max-w-xl mx-auto space-y-6">
         
@@ -38,45 +38,53 @@
     </div>
 
     <script>
-        // ইউআরএল থেকে কন্টাক্ট আইডি বের করা
         const urlParams = new URLSearchParams(window.location.search);
         const personId = urlParams.get('id');
 
         async function loadPublicStatement() {
-            if (!personId) return document.body.innerHTML = '<h2 class="text-center text-rose-500 mt-10">ভুল লিংক!</h2>';
-
-            const res = await fetch(`/api/public-statement/${personId}`);
-            const data = await res.json();
-
-            if (!data.success) {
-                return document.body.innerHTML = '<h2 class="text-center text-rose-500 mt-10">হিসাব পাওয়া যায়নি!</h2>';
+            if (!personId) {
+                document.body.innerHTML = '<div class="text-center text-rose-400 mt-20 font-bold">ভুল লিংক বা কোনো আইডি দেওয়া হয়নি!</div>';
+                return;
             }
 
-            document.getElementById('personName').innerText = data.person.name;
-            document.getElementById('personPhone').innerText = data.person.phone ? `📱 ${data.person.phone}` : '';
-            document.getElementById('netBalance').innerText = `৳ ${data.netBalance}`;
+            try {
+                const res = await fetch(`/api/public-statement/${personId}`);
+                const data = await res.json();
 
-            const container = document.getElementById('txList');
-            container.innerHTML = '';
+                if (!data.success) {
+                    document.body.innerHTML = '<div class="text-center text-rose-400 mt-20 font-bold">হিসাবের তথ্য পাওয়া যায়নি!</div>';
+                    return;
+                }
 
-            if (data.transactions.length === 0) {
-                container.innerHTML = `<p class="text-slate-500 text-xs text-center py-3">কোনো লেনদেন পাওয়া যায়নি</p>`;
-            }
+                document.getElementById('personName').innerText = data.person.name;
+                document.getElementById('personPhone').innerText = data.person.phone ? `📱 ${data.person.phone}` : '';
+                document.getElementById('netBalance').innerText = `৳ ${data.netBalance}`;
 
-            data.transactions.forEach(t => {
-                const dateStr = new Date(t.date).toLocaleDateString('bn-BD');
-                container.innerHTML += `
-                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs">
-                        <div>
-                            <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">${dateStr}</span>
-                            <p class="text-slate-300 font-medium mt-1">${t.note || (t.type === 'TAKE' ? 'দেনা/বাকি' : 'পরিশোধ')}</p>
+                const container = document.getElementById('txList');
+                container.innerHTML = '';
+
+                if (data.transactions.length === 0) {
+                    container.innerHTML = `<p class="text-slate-500 text-xs text-center py-3">কোনো লেনদেন পাওয়া যায়নি</p>`;
+                    return;
+                }
+
+                data.transactions.forEach(t => {
+                    const dateStr = new Date(t.date).toLocaleDateString('bn-BD');
+                    container.innerHTML += `
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs">
+                            <div>
+                                <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">${dateStr}</span>
+                                <p class="text-slate-300 font-medium mt-1">${t.note || (t.type === 'TAKE' ? 'দেনা/বাকি' : 'পরিশোধ')}</p>
+                            </div>
+                            <span class="font-bold ${t.type === 'TAKE' ? 'text-rose-400' : 'text-emerald-400'}">
+                                ${t.type === 'TAKE' ? '+৳ ' : '-৳ '}${t.amount}
+                            </span>
                         </div>
-                        <span class="font-bold ${t.type === 'TAKE' ? 'text-rose-400' : 'text-emerald-400'}">
-                            ${t.type === 'TAKE' ? '+৳ ' : '-৳ '}${t.amount}
-                        </span>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            } catch (err) {
+                document.body.innerHTML = '<div class="text-center text-rose-400 mt-20 font-bold">সার্ভারে সমস্যা হয়েছে!</div>';
+            }
         }
 
         loadPublicStatement();
