@@ -1,28 +1,24 @@
-require('dotenv').config();
 const dns = require('dns');
-dns.setServers(['8.8.8.8', '8.8.4.4']);
+try { dns.setServers(['8.8.8.8', '8.8.4.4']); } catch(e){}
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const path = require('path');
+const cron = require('node-cron');
 
 const app = express();
-app.use(express.json({ limit: '20mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(cors());
-
-// ✅ স্ট্যাটিক ফাইল পাথ ফিক্স (public ফোল্ডার ও রুট উভয় সাপোর্ট করবে)
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname));
+app.use(express.static('public'));
 
 // ডাটাবেজ কানেকশন
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/myPersonalApp";
+const MONGO_URI = "mongodb+srv://mahidulworld_db_user:DXXiMV2Czj3pRmQj@cluster0.jmmy9qc.mongodb.net/myPersonalApp?retryWrites=true&w=majority";
 
 mongoose.connect(MONGO_URI)
-    .then(() => console.log('✅ ডাটাবেজ সফলভাবে কানেক্ট হয়েছে!'))
-    .catch(err => console.error('❌ ডাটাবেজ কানেকশন ভুল:', err));
+    .then(() => console.log('✅ ডাটাবেজ কানেক্টেড!'))
+    .catch(err => console.error('❌ ডাটাবেজ ভুল:', err));
 
-// ডাটাবেজ স্কিমাসমূহ
+// স্কিমাসমূহ
 const Auth = mongoose.model('Auth', new mongoose.Schema({ pin: { type: String, default: '1234' } }));
 
 const Person = mongoose.model('Person', new mongoose.Schema({
@@ -47,22 +43,74 @@ const Task = mongoose.model('Task', new mongoose.Schema({
     isNotified: { type: Boolean, default: false }
 }));
 
-// --- এপিআই রাউটসমূহ ---
+// --- ডাটা ব্যাকআপ ও রিস্টোর এপিআই ---
 
-// ১. লগইন
+// ১. পুরো ডাটা ব্যাকআপ ডাউনলোড
+app.get('/api/backup', async (req, res) => {
+    try {
+        const persons = await Person.find();
+        const transactions = await Transaction.find();
+        const tasks = await Task.find();
+        const auth = await Auth.findOne();
+
+        const backupData = {
+            exportDate: new Date(),
+            auth,
+            persons,
+            transactions,
+            tasks
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename=tali_app_backup_${Date.now()}.json`);
+        res.send(JSON.stringify(backupData, null, 2));
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ২. ডাটা রিস্টোর করা
+app.post('/api/restore', async (req, res) => {
+    try {
+        const { persons, transactions, tasks, auth } = req.body;
+
+        if (auth && auth.pin) {
+            await Auth.deleteMany({});
+            await new Auth({ pin: auth.pin }).save();
+        }
+
+        if (persons && Array.isArray(persons)) {
+            await Person.deleteMany({});
+            await Person.insertMany(persons);
+        }
+
+        if (transactions && Array.isArray(transactions)) {
+            await Transaction.deleteMany({});
+            await Transaction.insertMany(transactions);
+        }
+
+        if (tasks && Array.isArray(tasks)) {
+            await Task.deleteMany({});
+            await Task.insertMany(tasks);
+        }
+
+        res.json({ success: true, message: 'ডাটা সফলভাবে রিস্টোর করা হয়েছে!' });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// --- অন্যান্য এপিআই সমুহ ---
+
 app.post('/api/login', async (req, res) => {
     const { pin } = req.body;
     let auth = await Auth.findOne();
     if (!auth) auth = await new Auth({ pin: '1234' }).save();
 
-    if (auth.pin === pin) {
-        res.json({ success: true, token: 'AUTH_VALID_USER' });
-    } else {
-        res.status(401).json({ success: false, message: 'ভুল পিন (PIN) দিয়েছেন!' });
-    }
+    if (auth.pin === pin) res.json({ success: true, token: 'AUTH_SECRET_TOKEN_123' });
+    else res.status(401).json({ success: false, message: 'ভুল পিন (PIN) দিয়েছেন!' });
 });
 
-// ২. পিন পরিবর্তন
 app.post('/api/change-pin', async (req, res) => {
     const { oldPin, newPin } = req.body;
     let auth = await Auth.findOne();
@@ -71,13 +119,12 @@ app.post('/api/change-pin', async (req, res) => {
     if (auth.pin === oldPin) {
         auth.pin = newPin;
         await auth.save();
-        res.json({ success: true, message: 'পিন সফলভাবে পরিবর্তিত হয়েছে!' });
+        res.json({ success: true, message: 'পিন পরিবর্তিত হয়েছে!' });
     } else {
         res.status(400).json({ success: false, message: 'পুরাতন পিনটি ভুল!' });
     }
 });
 
-// ৩. সব কন্টাক্ট এবং মোট হিসাব
 app.get('/api/persons', async (req, res) => {
     try {
         const persons = await Person.find().sort({ name: 1 });
@@ -94,7 +141,6 @@ app.get('/api/persons', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ৪. নতুন কন্টাক্ট যোগ
 app.post('/api/persons', async (req, res) => {
     try {
         const person = new Person(req.body);
@@ -103,7 +149,6 @@ app.post('/api/persons', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ৫. নির্দিষ্ট ব্যক্তির লেনদেন
 app.get('/api/persons/:id/transactions', async (req, res) => {
     try {
         const person = await Person.findById(req.params.id);
@@ -117,11 +162,10 @@ app.get('/api/persons/:id/transactions', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ৬. পাবলিক স্টেটমেন্ট
 app.get('/api/public-statement/:id', async (req, res) => {
     try {
         const person = await Person.findById(req.params.id);
-        if (!person) return res.status(404).json({ success: false, message: 'তথ্য পাওয়া যায়নি!' });
+        if (!person) return res.status(404).json({ success: false, message: 'পাওয়া যায়নি' });
 
         const transactions = await Transaction.find({ personId: req.params.id }).sort({ date: -1 });
         let netBalance = 0;
@@ -134,7 +178,6 @@ app.get('/api/public-statement/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ success: false, error: err.message }); }
 });
 
-// ৭. লেনদেন তৈরি
 app.post('/api/transactions', async (req, res) => {
     try {
         const { personId, type, amount, note, date } = req.body;
@@ -147,7 +190,6 @@ app.post('/api/transactions', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ৮. লেনদেন এডিট
 app.put('/api/transactions/:id', async (req, res) => {
     try {
         const { type, amount, note, date } = req.body;
@@ -155,70 +197,94 @@ app.put('/api/transactions/:id', async (req, res) => {
         if (date) updateData.date = new Date(date);
 
         await Transaction.findByIdAndUpdate(req.params.id, updateData);
-        res.json({ success: true, message: 'লেনদেন আপডেট হয়েছে!' });
+        res.json({ success: true, message: 'আপডেট হয়েছে!' });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ৯. লেনদেন ডিলিট
 app.delete('/api/transactions/:id', async (req, res) => {
     try {
         await Transaction.findByIdAndDelete(req.params.id);
-        res.json({ success: true, message: 'লেনদেন মুছে ফেলা হয়েছে!' });
+        res.json({ success: true, message: 'ডিলিট হয়েছে!' });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ১০. রিমাইন্ডার তৈরি
+app.post('/api/send-whatsapp-summary', async (req, res) => {
+    try {
+        const { personId } = req.body;
+        const person = await Person.findById(personId);
+        const txs = await Transaction.find({ personId }).sort({ date: 1 });
+
+        if (!person || !person.phone) return res.status(400).json({ message: 'ফোন নম্বর দেওয়া নেই!' });
+
+        let totalDue = 0;
+        txs.forEach(t => {
+            if (t.type === 'TAKE') totalDue += t.amount;
+            else totalDue -= t.amount;
+        });
+
+        const last5Txs = txs.slice(-5);
+        let detailsText = '';
+        last5Txs.forEach((t, index) => {
+            const d = new Date(t.date).toLocaleDateString('bn-BD');
+            if (t.type === 'TAKE') {
+                detailsText += `${index + 1}. ${d}: +৳${t.amount} (${t.note || 'বাকি'})\n`;
+            } else {
+                detailsText += `${index + 1}. ${d}: -৳${t.amount} (${t.note || 'পরিশোধ'})\n`;
+            }
+        });
+
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const fullHost = `${protocol}://${req.headers.host}`;
+        const statementUrl = `${fullHost}/statement.html?id=${personId}`;
+
+        let formattedPhone = person.phone.replace(/[^0-9]/g, '');
+        if (formattedPhone.startsWith('0')) formattedPhone = '88' + formattedPhone;
+
+        const message = `📋 *হিসাব বিবরণী - ${person.name}*\n\n` +
+                        `*সর্বশেষ ৫টি লেনদেন:*\n${detailsText}\n` +
+                        `-----------------------\n` +
+                        `*সর্বমোট বকেয়া দেনা: ৳${totalDue}*\n\n` +
+                        `🔗 *সম্পূর্ণ হিসাব দেখতে নিচে ক্লিক করুন:*\n${statementUrl}`;
+
+        const whatsappAppUrl = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(message)}`;
+        const whatsappWebUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+
+        res.json({ success: true, whatsappAppUrl, whatsappWebUrl, message: 'হোয়াটসঅ্যাপে ওপেন করা হচ্ছে...' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/tasks', async (req, res) => {
     try {
         let { title, textNote, audioData, dateTime } = req.body;
         if (!title || title.trim() === '') {
             const formattedDate = new Date(dateTime).toLocaleString('bn-BD');
-            title = `রিমাইন্ডার - ${formattedDate}`;
+            title = `Untitled - ${formattedDate}`;
         }
-        const task = new Task({ title, textNote, audioData, dateTime, isNotified: false });
+        const task = new Task({ title, textNote, audioData, dateTime });
         await task.save();
         res.status(201).json({ success: true, data: task });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ১১. সব রিমাইন্ডার তালিকা
 app.get('/api/tasks', async (req, res) => {
-    try {
-        const tasks = await Task.find().sort({ dateTime: -1 });
-        res.json(tasks);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    const tasks = await Task.find().sort({ dateTime: -1 });
+    res.json(tasks);
 });
 
-// ১২. রিমাইন্ডার নোটিফাইড মার্ক করা
-app.patch('/api/tasks/:id/notified', async (req, res) => {
-    try {
-        await Task.findByIdAndUpdate(req.params.id, { isNotified: true });
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// ১৩. রিমাইন্ডার ডিলিট
 app.delete('/api/tasks/:id', async (req, res) => {
-    try {
-        await Task.findByIdAndDelete(req.params.id);
-        res.json({ success: true, message: 'রিমাইন্ডার ডিলিট হয়েছে!' });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    await Task.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'রিমাইন্ডার মুছে ফেলা হয়েছে!' });
 });
 
-// ✅ হোম পেজ ও স্টেটমেন্ট পেজ রাউটিং
-app.get('/', (req, res) => {
-    const indexPath = path.join(__dirname, 'public', 'index.html');
-    res.sendFile(indexPath, (err) => {
-        if (err) res.sendFile(path.join(__dirname, 'index.html'));
-    });
-});
-
-app.get('/statement.html', (req, res) => {
-    const stmtPath = path.join(__dirname, 'public', 'statement.html');
-    res.sendFile(stmtPath, (err) => {
-        if (err) res.sendFile(path.join(__dirname, 'statement.html'));
+cron.schedule('* * * * *', async () => {
+    const now = new Date();
+    const pendingTasks = await Task.find({ dateTime: { $lte: now }, isNotified: false });
+    pendingTasks.forEach(async (task) => {
+        console.log(`⏰ এলার্ম: ${task.title}`);
+        task.isNotified = true;
+        await task.save();
     });
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 সার্ভার রানিং: http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`সার্ভার চলছে পোর্ট ${PORT}-এ...`));
